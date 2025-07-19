@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather & Music Mood</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: white;
+      background: #111;
+      transition: background 1.5s ease;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      margin-top: 40px;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+
+    .search-box {
+      margin: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      font-size: 1rem;
+      width: 250px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #weather {
+      margin-top: 20px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: 15px;
+      width: 80%;
+      max-width: 400px;
+      backdrop-filter: blur(8px);
+    }
+
+    #music iframe {
+      margin-top: 30px;
+      border-radius: 12px;
+      width: 90vw;
+      max-width: 700px;
+      height: 580px;
+      border: none;
+    }
+
+    .cloud, .rain-drop, .snow-flake, .sun {
+      position: absolute;
+    }
+
+    .cloud {
+      width: 200px;
+      height: 60px;
+      background: #fff;
+      border-radius: 100px;
+      animation: moveClouds 60s linear infinite;
+      opacity: 0.2;
+    }
+
+    .cloud::before, .cloud::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+      border-radius: 100px;
+    }
+    .cloud::before { width: 100px; height: 100px; top: -50px; left: 20px; }
+    .cloud::after { width: 120px; height: 120px; top: -60px; left: 90px; }
+
+    @keyframes moveClouds {
+      0% { left: -300px; }
+      100% { left: 100vw; }
+    }
+
+    .rain-drop {
+      width: 2px;
+      height: 15px;
+      background: #00f;
+      animation: rainFall 0.5s linear infinite;
+      opacity: 0.5;
+    }
+
+    @keyframes rainFall {
+      0% { top: -20px; }
+      100% { top: 100vh; }
+    }
+
+    .snow-flake {
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.7;
+      animation: snowFall 5s linear infinite;
+    }
+
+    @keyframes snowFall {
+      0% { transform: translateY(-10px); }
+      100% { transform: translateY(100vh); }
+    }
+
+    .sun {
+      top: 50px;
+      right: 50px;
+      width: 100px;
+      height: 100px;
+      background: yellow;
+      border-radius: 50%;
+      box-shadow: 0 0 40px yellow;
+      animation: pulse 4s ease-in-out infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Weather-Based Music Vibes 🎶</h1>
+  <div class="search-box">
+    <input type="text" id="cityInput" placeholder="Enter city name" />
+    <button onclick="getWeather()">Get Vibe</button>
+  </div>
+  <div id="weather"></div>
+  <div id="music"></div>
+
+  <script>
+    const apiKey = "53e8162f12ff8e9ef79c74d9757419eb"; // Replace with your API Key
+
+    function clearAnimations() {
+      document.querySelectorAll('.cloud, .rain-drop, .snow-flake, .sun').forEach(e => e.remove());
+    }
+
+    function createRain() {
+      for (let i = 0; i < 80; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'rain-drop';
+        drop.style.left = Math.random() * window.innerWidth + 'px';
+        drop.style.animationDuration = (Math.random() * 0.5 + 0.3) + 's';
+        document.body.appendChild(drop);
+      }
+    }
+
+    function createSnow() {
+      for (let i = 0; i < 60; i++) {
+        const flake = document.createElement('div');
+        flake.className = 'snow-flake';
+        flake.style.left = Math.random() * window.innerWidth + 'px';
+        flake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        document.body.appendChild(flake);
+      }
+    }
+
+    function createClouds() {
+      for (let i = 0; i < 3; i++) {
+        const cloud = document.createElement('div');
+        cloud.className = 'cloud';
+        cloud.style.top = 80 + i * 60 + 'px';
+        document.body.appendChild(cloud);
+      }
+    }
+
+    function createSun() {
+      const sun = document.createElement('div');
+      sun.className = 'sun';
+      document.body.appendChild(sun);
+    }
+
+    function getTimePeriod() {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) return 'morning';
+      else if (hour >= 12 && hour < 18) return 'day';
+      else return 'night';
+    }
+
+    function getPlaylist(weather, temp, time) {
+      weather = weather.toLowerCase();
+      let playlist = "37i9dQZF1DX4WYpdgoIcn6"; // default mixed moods
+
+      if (weather.includes("clear")) {
+        if (temp > 30) playlist = "37i9dQZF1DWZ1FUX6sM67g"; // Chill Vibes
+        else if (time === "morning") playlist = "37i9dQZF1DX1s9knjP51Oa"; // Peaceful Piano
+        else playlist = "37i9dQZF1DX0UrRvztWcAU"; // Mood Booster
+      } else if (weather.includes("cloud")) {
+        if (time === "night") playlist = "37i9dQZF1DX4E3UdUs7fUx"; // Rainy Day
+        else playlist = "37i9dQZF1DWYBF1dYDPlHw"; // Cloudy Vibes
+      } else if (weather.includes("rain") || weather.includes("drizzle")) {
+        playlist = time === "night" ? "37i9dQZF1DXbvABJXBIyiY" : "37i9dQZF1DX4sWSpwq3LiO";
+      } else if (weather.includes("thunderstorm")) {
+        playlist = "37i9dQZF1DX1tyCD9QhIWF"; // Stormy Weather
+      } else if (weather.includes("snow")) {
+        playlist = "37i9dQZF1DWUNIrSzKgQbP"; // Winter Moods
+      } else if (["mist", "fog", "haze"].some(w => weather.includes(w))) {
+        playlist = "37i9dQZF1DX6VdMW310YC7"; // Soft Focus
+      }
+
+      return playlist;
+    }
+
+    async function getWeather() {
+      const city = document.getElementById("cityInput").value.trim();
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("City not found");
+        const data = await res.json();
+
+        const desc = data.weather[0].description;
+        const temp = data.main.temp;
+        const icon = data.weather[0].icon;
+        const cityName = data.name;
+        const time = getTimePeriod();
+
+        // Get playlist based on detailed logic
+        const playlist = getPlaylist(desc, temp, time);
+
+        // UI Color and animation decisions
+        let bg = "#333";
+        let animationFn = () => {};
+        if (desc.includes("clear")) { bg = "#fdd835"; animationFn = createSun; }
+        else if (desc.includes("cloud")) { bg = "#607d8b"; animationFn = createClouds; }
+        else if (desc.includes("rain") || desc.includes("drizzle")) { bg = "#4a148c"; animationFn = createRain; }
+        else if (desc.includes("thunderstorm")) { bg = "#311b92"; animationFn = createRain; }
+        else if (desc.includes("snow")) { bg = "#90caf9"; animationFn = createSnow; }
+        else if (desc.includes("mist") || desc.includes("haze") || desc.includes("fog")) { bg = "#90a4ae"; animationFn = createClouds; }
+
+        document.body.style.background = bg;
+        clearAnimations();
+        animationFn();
+
+        document.getElementById("weather").innerHTML = `
+          <h2>🌍 ${cityName}</h2>
+          <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="icon">
+          <p><strong>${desc}</strong></p>
+          <p>🌡️ ${temp}&deg;C</p>
+        `;
+
+        document.getElementById("music").innerHTML = `
+          <iframe 
+            src="https://open.spotify.com/embed/playlist/${playlist}" 
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy">
+          </iframe>
+        `;
+      } catch (err) {
+        document.getElementById("weather").innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        document.getElementById("music").innerHTML = "";
+        clearAnimations();
+      }
+    }
+  </script>
+</body>
+</html>
