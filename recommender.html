@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weather Beats | Recommender</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: url('https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1950&q=80') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      min-height: 100vh;
+      position: relative;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 0;
+    }
+    nav {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 50px;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    nav .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #f9d423;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 20px;
+    }
+    nav ul li a {
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    nav ul li a:hover {
+      color: #f9d423;
+    }
+
+    .main-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 120px 20px 40px;
+    }
+
+    h1.typing {
+      font-size: 3rem;
+      color: #f9d423;
+      overflow: hidden;
+      border-right: 2px solid #f9d423;
+      white-space: nowrap;
+      margin: 0 auto;
+      animation: typing 3s steps(30, end), blink 0.75s step-end infinite;
+      width: 0;
+    }
+
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+
+    .hidden {
+      visibility: hidden;
+    }
+
+    input, button {
+      padding: 12px 16px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+
+    input {
+      width: 250px;
+    }
+
+    button {
+      background-color: #ff4e50;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff6b6b;
+    }
+
+    .songs {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .song {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.5s ease;
+      transition: transform 0.3s;
+    }
+
+    .song:hover {
+      transform: translateY(-5px);
+    }
+
+    audio {
+      margin-top: 10px;
+    }
+
+    iframe {
+      margin-top: 10px;
+      border-radius: 12px;
+      width: 100%;
+    }
+
+    h3 {
+      font-weight: 400;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        flex-direction: column;
+        padding: 10px;
+      }
+      .main-content {
+        padding-top: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <nav>
+    <div class="logo">Weather Beats</div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="recommender.html">Recommender</a></li>
+      <li><a href="#">About</a></li>
+    </ul>
+  </nav>
+
+  <div class="main-content">
+    <h1 id="animated-heading" class="typing">Get the music vibes</h1>
+    <input id="cityInput" type="text" placeholder="Enter city name..." />
+    <button onclick="getRecommendation()">Recommend</button>
+    <div id="results" class="songs"></div>
+  </div>
+
+  <script>
+    const OPENWEATHER_API_KEY = '53e8162f12ff8e9ef79c74d9757419eb';
+    const SPOTIFY_CLIENT_ID = 'c7f8f6f0664f4a8f93e05cfe6f767169';
+    const SPOTIFY_CLIENT_SECRET = '52d206eaecf1463a8ae6606d6c05e6ae';
+
+    let token = "";
+
+    function animateHeadingLoop() {
+      const heading = document.getElementById('animated-heading');
+      heading.classList.remove('typing');
+      void heading.offsetWidth; // trigger reflow
+      heading.classList.add('typing');
+    }
+
+    setInterval(animateHeadingLoop, 10000); // repeat every 10s
+
+    async function getSpotifyToken() {
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
+        },
+        body: 'grant_type=client_credentials'
+      });
+
+      const data = await res.json();
+      token = data.access_token;
+    }
+
+    async function getWeather(city) {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${OPENWEATHER_API_KEY}&units=metric`
+      );
+      return res.json();
+    }
+
+    function predictMood(desc, temp, hour) {
+      desc = desc.toLowerCase();
+      if (desc.includes('rain')) return 'chill';
+      if (desc.includes('clear') && temp > 25) return 'happy';
+      if (desc.includes('snow') || temp < 5) return 'calm';
+      if (desc.includes('cloud')) return 'lofi';
+      if (hour >= 18 || hour < 6) return 'relax';
+      return 'vibes';
+    }
+
+    async function searchSongs(mood) {
+      const res = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(mood)}&type=track&limit=5`,
+        {
+          headers: {
+            Authorization: 'Bearer ' + token
+          }
+        }
+      );
+      const data = await res.json();
+      return data.tracks.items;
+    }
+
+    async function getRecommendation() {
+      const city = document.getElementById('cityInput').value;
+      document.getElementById('results').innerHTML = '⏳ Loading...';
+
+      if (!token) await getSpotifyToken();
+
+      try {
+        const weather = await getWeather(city);
+        const desc = weather.weather[0].description;
+        const temp = weather.main.temp;
+        const hour = new Date().getHours();
+        const mood = predictMood(desc, temp, hour);
+        const songs = await searchSongs(mood);
+
+        let html = `<h3>🌤 Weather: ${desc}, ${temp}°C <br> 🎧 Mood: <strong>${mood}</strong></h3>`;
+        songs.forEach(song => {
+          html += `
+            <div class="song">
+              <strong>${song.name}</strong> - ${song.artists[0].name}<br>
+              ${song.preview_url ? `<audio controls src="${song.preview_url}"></audio>` : '🎵 No Preview Available'}
+              <br>
+              <iframe src="https://open.spotify.com/embed/track/${song.id}"
+                      height="80" frameborder="0" allowtransparency="true"
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy">
+              </iframe>
+            </div>
+          `;
+        });
+        document.getElementById('results').innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('results').innerHTML = '❌ Error fetching data. Try again.';
+      }
+    }
+  </script>
+</body>
+</html>
